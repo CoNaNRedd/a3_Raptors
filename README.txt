@@ -3,7 +3,7 @@ Assets from McRuppert and BadBenson,
 https://www.armaholic.com/page.php?id=27163
 https://forums.bohemia.net/forums/topic/195969-raptors-zombies-and-more/
 
-I wrote this simple AI because the original AI were broken.
+I wrote this simple AI because the original AI was broken.
 I repacked the Addon to exclude "babe_raptors_modules" and Use Assets from "babe_raptors".
 There was a problem with the animations. Everytime the raptor went Idle, It played dead after a while.
 I decided to empty "variantsAI" under each State in CfgMoves and the problem went away.
