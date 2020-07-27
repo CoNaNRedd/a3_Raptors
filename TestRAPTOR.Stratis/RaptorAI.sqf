@@ -12,25 +12,6 @@ Raptor Init field:
 G_RAP_bDone = false;
 
 Fnc_RAP_MkRaptor  = {//call
-_MakeEyes = {
-params["_RAPTOR"];
-
-_HeadPos = player selectionPosition "head_hit";
-_HeadPos = _HeadPos vectorAdd [0,0.40,0];
-
-_eye = "#lightpoint" createVehicle (getPosATL _RAPTOR);
-_eye setLightDayLight true;
-_eye setLightUseFlare true;
-_eye setLightBrightness 0;
-_eye setLightIntensity ([1000, 5e3] select (sunOrMoon > 0.5));
-_eye setLightColor[255, 0, 0];
-_eye setLightAttenuation [0,1e3,1e3,1e3];
-_eye setLightFlareSize 0.66;
-_eye setLightFlareMaxDistance 300;
-_eye lightAttachObject [_RAPTOR, _HeadPos];
-
-};
-
 if(isNil   "G_RAP_aRaptors") then{ G_RAP_aRaptors   = []; };
 if(isNil "G_RAP_aCanAddRem") then{ G_RAP_aCanAddRem = true; };
 //if(isNil  "G_RAP_spwMainAI") then{ G_RAP_spwMainAI  = ScriptNull; };
@@ -107,7 +88,6 @@ _RAPTOR addEventHandler ["FiredNear",     Fnc_RAP_HndlFNear];
 
 G_RAP_aRaptors pushback _RAPTOR;
 [_RAPTOR] call Fnc_RAP_DoPATROL;
-[_RAPTOR] call _MakeEyes;
 //if(isNull G_RAP_spwMainAI) then{ G_RAP_spwMainAI = [] spawn Fnc_RAP_MainAI; };
 
 _RAPTOR
