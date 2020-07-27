@@ -49,5 +49,5 @@ To Include in your mission:
       (Agent) - the raptor
 
 notes:
-  - when placing the raptor from the editor, it will take some time to active.
+  - when placing the raptor from the editor, it will take some time to activate.
   
