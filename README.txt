@@ -50,4 +50,4 @@ To Include in your mission:
 
 notes:
   - when placing the raptor from the editor, it will take some time to activate.
-  
+  - Disable old raptor addons if you haven't
