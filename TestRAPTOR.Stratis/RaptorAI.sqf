@@ -14,7 +14,6 @@ G_RAP_bDone = false;
 Fnc_RAP_MkRaptor  = {//call
 if(isNil   "G_RAP_aRaptors") then{ G_RAP_aRaptors   = []; };
 if(isNil "G_RAP_aCanAddRem") then{ G_RAP_aCanAddRem = true; };
-//if(isNil  "G_RAP_spwMainAI") then{ G_RAP_spwMainAI  = ScriptNull; };
 
 params["_Pos", "_aClass", "_Faction", "_RAPTOR"];
 if((count _this) <= 3) then{ _RAPTOR = ObjNull; };
@@ -88,7 +87,6 @@ _RAPTOR addEventHandler ["FiredNear",     Fnc_RAP_HndlFNear];
 
 G_RAP_aRaptors pushback _RAPTOR;
 [_RAPTOR] call Fnc_RAP_DoPATROL;
-//if(isNull G_RAP_spwMainAI) then{ G_RAP_spwMainAI = [] spawn Fnc_RAP_MainAI; };
 
 _RAPTOR
 };
@@ -298,7 +296,7 @@ _aVel = _aVel vectorAdd [0,0,_V0y];
 _RAPTOR setVelocity _aVel;
 
 _Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
-playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 [_RAPTOR, _TARGET] spawn Fnc_RAP_spwATTACK1;
 
@@ -310,7 +308,7 @@ params["_RAPTOR", "_TARGET"];
 _RAPTOR playAction format["RaptorBiteGesture%1", ((floor random 3) + 1)];
 
 _Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
-playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 private _aHitDam = [];
 if(alive _TARGET) then{
@@ -329,7 +327,7 @@ if(alive _TARGET) then{
 
         [10] remoteExec ["BIS_fnc_bloodEffect",      _TARGET];
         [  ] remoteExec ["BIS_fnc_indicateBleeding", _TARGET];
-        playSound3D ["babe_raptors\sounds\Human\RaptorJumpHitHuman.ogg", ObjNull, false, (ASLtoAGL (getPosWorld _TARGET)), 4.5, 1, 50];
+        playSound3D ["babe_raptors\sounds\Human\RaptorJumpHitHuman.ogg", ObjNull, false, (getPosWorld _TARGET), 4.5, 1, 50];
       };
     } else{
       _aHitDam = getAllHitPointsDamage _TARGET;
@@ -337,7 +335,7 @@ if(alive _TARGET) then{
       {_TARGET setHitPointDamage [_x, ((_aHitDam select 2) select _foreachIndex)]; } foreach(_aHitDam select 0);
 
       _Snd = format ["babe_raptors\sounds\HitCar%1.wss", ((floor random 3) + 1)];
-      playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _TARGET)), 4.5, 1, 50];
+      playSound3D [_Snd, ObjNull, false, (getPosWorld _TARGET), 4.5, 1, 50];
     };
   };
   };
@@ -392,7 +390,7 @@ _evID = _RAPTOR addEventHandler ["AnimDone", {
       [_this, "babe_raptor_Idle"] remoteExec ["switchMove", 0];
       _this spawn{
         for "_i" from 1 to 3 do{
-          playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (ASLtoAGL (getPosWorld _this)), 4.5, 1, 100];
+          playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _this), 4.5, 1, 100];
           sleep (0.75 + (random 0.66));
         };
       };
@@ -411,7 +409,7 @@ _evID = _RAPTOR addEventHandler ["AnimDone", {
 if(_evID != -1) then{ _RAPTOR setVariable ["vRAP_ANIMevID", _evID, false]; };
 
 [_RAPTOR, "AI_Attack_JumpAttackEat"] remoteExec ["switchMove", 0];
-playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 100];
+playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 100];
 
 _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE  =  "EATING";
@@ -436,7 +434,7 @@ params["_RAPTOR"];
 
 [_RAPTOR, "Unconscious"] remoteExec ["switchMove", 0];
 _Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
-playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE  =  "UNCONS";
@@ -749,7 +747,7 @@ _RAPTOR spawn{ _this setAnimSpeedCoef 2; sleep 1; _this setAnimSpeedCoef 1; };
 private _aHitDam = [];
 if(alive _RAPTOR) then{
   _RAPTOR setVariable ["vRAP_bNoFallDmg", false, false];
-  playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+  playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
   if(alive _TARGET) then{
     _PosR = getPosWorld  _RAPTOR;
@@ -770,7 +768,7 @@ if(alive _RAPTOR) then{
           [10] remoteExec ["BIS_fnc_bloodEffect",      _TARGET];
           [  ] remoteExec ["BIS_fnc_indicateBleeding", _TARGET];
           _Snd = format ["babe_raptors\sounds\Human\RaptorJumpHitHuman.ogg"];
-          playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _TARGET)), 4.5, 1, 50];
+          playSound3D [_Snd, ObjNull, false, (getPosWorld _TARGET), 4.5, 1, 50];
         };
       } else{
         _aHitDam = getAllHitPointsDamage _TARGET;
@@ -778,7 +776,7 @@ if(alive _RAPTOR) then{
         {_TARGET setHitPointDamage [_x, ((_aHitDam select 2) select _foreachIndex)]; } foreach(_aHitDam select 0);
 
         _Snd = format ["babe_raptors\sounds\HitCar%1.wss", ((floor random 3) + 1)];
-        playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _TARGET)), 4.5, 1, 50];
+        playSound3D [_Snd, ObjNull, false, (getPosWorld _TARGET), 4.5, 1, 50];
 
         _Dir = _RAPTOR getDir _TARGET;
         _Psh = ([sin _Dir, cos _Dir, 0] vectorMultiply 2.22) vectorAdd [0,0,1+(random 2)];
@@ -852,7 +850,7 @@ Fnc_RAP_HndlKilled = {//call
 params ["_RAPTOR", "_Killer", "_Instigator", "_bEffects"];
 
 _Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
-playSound3D [_Snd, ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 { if(!(isNull _x)) then{ terminate _x; }; }foreach (_RAPTOR getVariable ["vRAP_aProcess", []]);
 
@@ -904,14 +902,14 @@ private _STATE  = _RAPTOR getVariable ["vRAP_STATE", ""];
 switch(true) do{
 case (_STATE in ["PATROL", "TOEAT", "EATING"]) : {
   if((_PosR vectorDistance _PosF) <= 200) then{
-    playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+    playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
     [_RAPTOR, "CHASE", [_RAPTOR, _Firer], true] call Fnc_RAP_ToState;
   } else{
     //TODO: take Cover - COWARDING
   };
 };
 case (_STATE == "CHASE") : {
-  playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (ASLtoAGL (getPosWorld _RAPTOR)), 4.5, 1, 50];
+  playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
   _RAPTOR setVariable ["vRAP_TARGET", _Firer];
   _RAPTOR setDestination [(getPosATL _Firer), "LEADER DIRECT", false];
   _RAPTOR forceSpeed 8.33;
