@@ -71,7 +71,6 @@ _RAPTOR setVariable ["vRAP_TimeAttck2",  time, false];
 _RAPTOR setVariable ["vRAP_ANIMevID",      -1, false];
 _RAPTOR setVariable ["vRAP_tLastUncons", -999, false];
 _RAPTOR setVariable ["vRAP_bOnAlert",   false, false];
-_RAPTOR setVariable ["vRAP_bUnstuck",   false, false];
 _RAPTOR setVariable ["vRAP_LastUnStuck", -999, false];
 _RAPTOR setVariable ["vRAP_PosEat", (getPosWorld _RAPTOR), false];
 
@@ -103,7 +102,7 @@ private _FACTN = _RAPTOR getVariable ["vRAP_Faction", ""];
 
 _aTypes = ["LandVehicle", "Plane", "Helicopter", "Ship", "CAManBase", "Animal"];
 {//foreach _aNear
-  ScopeName "NearLoop";
+  ScopeName "FindNearLoop";
   if((_x getVariable ["vRAP_Faction", ""]) != _FACTN) then{
     _bCanTarget = false;
     _bTargetNOW = false;
@@ -114,21 +113,21 @@ _aTypes = ["LandVehicle", "Plane", "Helicopter", "Ship", "CAManBase", "Animal"];
         if((vehicle _x) == _x) then{
           switch (true) do{
             case((_Dist <=  50) && ((random 1) < 0.20)) : { _bTargetNOW = true; };//fast prone
-            case(_Dist <=  50) : { _bTargetNOW = ((vectorMagnitude velocity _x) >= 1.50); };//fast prone
-            case(_Dist <= 100) : { _bTargetNOW = ((vectorMagnitude velocity _x) >= 1.75); };//slow walk
-            case(_Dist <= 200) : { _bCanTarget = ((vectorMagnitude velocity _x) >= 5.20); _bTargetNOW = false; };//slow jog
+            case(_Dist <=  50) : { _bTargetNOW = ((vectorMagnitude (velocity _x)) >= 1.50); };//fast prone
+            case(_Dist <= 100) : { _bTargetNOW = ((vectorMagnitude (velocity _x)) >= 1.75); };//slow walk
+            case(_Dist <= 200) : { _bCanTarget = ((vectorMagnitude (velocity _x)) >= 5.20); _bTargetNOW = false; };//slow jog
             default{ _bCanTarget = ((vectorMagnitude (velocity _x)) >= 6.50); _bTargetNOW = false; };
           };
-          if(_bTargetNOW) then{ _TargObj = _x; breakOut "NearLoop"; };
+          if(_bTargetNOW) then{ _TargObj = _x; breakOut "FindNearLoop"; };
 
           _bCanTarget = _bCanTarget && !(surfaceIsWater (getPosWorld _x));
           if(_bCanTarget)then{ _aTargets pushback _x; };
         };
       };
       case (_x isKindOf "Animal") : {
-        _bCanTarget = _Dist <= 50;
+        _bCanTarget = (_Dist <= 50);
         _bCanTarget = _bCanTarget && !(surfaceIsWater (getPosWorld _x));
-        if(_bCanTarget) then{ _TargObj = _x; breakOut "NearLoop"; };
+        if(_bCanTarget) then{ _TargObj = _x; breakOut "FindNearLoop"; };
       };
       case ([(typeOf _x), ["Ship", "LandVehicle"]] call Fnc_IsKindOf) : {
         _bCanTarget = (({(alive _x)} count (crew _x)) >= 1);
@@ -151,7 +150,7 @@ if(isNull _TargObj) then{
 };
 
 private _bRet = false;
-if(!(isNull _TargObj)) then{
+if(not (isNull _TargObj)) then{
   _RAPTOR setVariable ["vRAP_TARGET", _TargObj, false];
   _bRet = true;
 };
@@ -164,7 +163,7 @@ params["_RAPTOR", "_ToSTATE", "_aArg", "_bKill"];
 private _aProc   = _RAPTOR getVariable ["vRAP_aProcess", []];
 private _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE0  = _RAPTOR getVariable ["vRAP_STATE",    ""];
-private _iSTATE  = _aStates findIf {(_x select 0) == _STATE0};
+private _iSTATE  = _aStates findIf {((_x select 0) == _STATE0)};
 private _ProcID  = ScriptNull;
 
 if(_bKill) then{
@@ -173,9 +172,8 @@ if(_iSTATE != -1) then{
   _iProc  = _vState select 2;
 
   _ProcID = _aProc select _iProc;
-  if(not (isNull _ProcID)) then{
-    terminate (_aProc select _iProc);
-  };
+  if(not (isNull _ProcID)) then{ terminate _ProcID; };
+
   _aProc set [_iProc, ScriptNull];
   _RAPTOR setVariable ["vRAP_aProcess", _aProc, false];
 
@@ -183,16 +181,15 @@ if(_iSTATE != -1) then{
 };
 };
 
-_iSTATE  = _aStates findIf {(_x select 0) == _ToSTATE};
+_iSTATE = _aStates findIf {((_x select 0) == _ToSTATE)};
 if(_iSTATE != -1) then{
-  _aArg call (missionNamespace getVariable [(((_aStates select _iSTATE) select 1) select 0), "Fnc_Dummy"]);
+  _aArg spawn (missionNamespace getVariable [(((_aStates select _iSTATE) select 1) select 0), "Fnc_Dummy"]);
 };
 
 };
 
 Fnc_RAP_DoPATROL   = {//call
-_GetNewPos = {
-params["_RAPTOR"];
+private _RAPTOR = _this select 0;
 
 private _MaxRd = _RAPTOR getVariable ["vRAP_PatrolRad",  1e2];
 private _MinD  = _RAPTOR getVariable ["vRAP_minRoamDist", 75];
@@ -200,25 +197,19 @@ private _CPos  = _RAPTOR getVariable ["vRAP_WP0", (getPosWorld _RAPTOR)];
 private _RPos  = getPosWorld _RAPTOR;
         _RPos  = _RPos vectorAdd [0,0,-(_RPos select 2)]; 
 private _Dist  = _RPos distance2D _CPos;
-private _Pos   = [];
+private _MoveTo   = [];
 
 if(_Dist <= _MinD) then{
   _DirTo  = _RPos getDir _CPos;
   _MinRad = _MinD + _Dist + (random 25);
-  _Pos = [_CPos, _MinRad, _MaxRd, (_DirTo-20), (_DirTo+20), 5, "MAN", "CCW", "NOLOSCHECK"] call Fnc_GetRadialPos;
+  _MoveTo = [_CPos, _MinRad, _MaxRd, (_DirTo-20), (_DirTo+20), 5, "MAN", "CCW", "NOLOSCHECK"] call Fnc_GetRadialPos;
 } else{
   _aTmp    = [_RPos, _MinD, _CPos] call Fnc_GetArcTangentDirs;
   _DirFrom = _aTmp select 0;
   _DirTo   = _aTmp select 1;
-  _Pos = [_CPos, 6, _MaxRd, _DirFrom, _DirTo, 5, "MAN", "CCW", "NOLOSCHECK"] call Fnc_GetRadialPos;
+  _MoveTo = [_CPos, 6, _MaxRd, _DirFrom, _DirTo, 5, "MAN", "CCW", "NOLOSCHECK"] call Fnc_GetRadialPos;
 };
 
-_Pos
-};
-
-params["_RAPTOR"];
-
-private _MoveTo = [_RAPTOR] call _GetNewPos;
 _RAPTOR setDestination [_MoveTo, "LEADER DIRECT", false];
 _RAPTOR forceSpeed 8.33;//max spd: 30km/h - 8.33m/s
 _RAPTOR setVariable ["MOVETO", _MoveTo, false];
@@ -234,8 +225,7 @@ private _ProcID = ScriptNull;
 if(isNull (_aSpawn select _iSTATE)) then{
   _ProcID = [_RAPTOR, _MoveTo] spawn Fnc_RAP_spwPATROL;
 };
-
-if(!(isNull _ProcID)) then{
+if(not (isNull _ProcID)) then{
   _aSpawn set [_iSTATE, _ProcID];
   _RAPTOR setVariable ["vRAP_aProcess", _aSpawn, false];
 };
@@ -243,7 +233,9 @@ if(!(isNull _ProcID)) then{
 _RAPTOR setVariable ["vRAP_STATE", _STATE, false];
 };
 Fnc_RAP_DoCHASE    = {//call
-params["_RAPTOR", "_TARGET"];
+private _RAPTOR = _this select 0;
+private _TARGET = _this select 1;
+
 if(isNull _TARGET) exitwith{
   [_RAPTOR, "PATROL", [_RAPTOR], true] call Fnc_RAP_ToState;
 };
@@ -253,7 +245,7 @@ _RAPTOR forceSpeed 8.33;
 
 _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE  =  "CHASE";
-private _iSTATE = _aStates findIf {(_x select 0) == _STATE};
+private _iSTATE = _aStates findIf {((_x select 0) == _STATE)};
         _iSTATE = ((_aStates select _iSTATE) select 1) select 2;
 
 private _aSpawn = _RAPTOR getVariable ["vRAP_aProcess", []];
@@ -262,7 +254,7 @@ private _ProcID = ScriptNull;
 if(isNull (_aSpawn select _iSTATE)) then{
   _ProcID = [_RAPTOR, _TARGET] spawn Fnc_RAP_spwCHASE;
 };
-if(!(isNull _ProcID)) then{
+if(not (isNull _ProcID)) then{
   _aSpawn set [_iSTATE, _ProcID];
   _RAPTOR setVariable ["vRAP_aProcess", _aSpawn, false];
 };
@@ -295,7 +287,7 @@ _aVel = _aVel vectorMultiply 1.75;
 _aVel = _aVel vectorAdd [0,0,_V0y];
 _RAPTOR setVelocity _aVel;
 
-_Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
+_Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor (random 12)) + 1)];
 playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 [_RAPTOR, _TARGET] spawn Fnc_RAP_spwATTACK1;
@@ -305,9 +297,9 @@ _RAPTOR setVariable ["vRAP_TimeAttck1", time, false];
 Fnc_RAP_DoAttack2  = {//call
 params["_RAPTOR", "_TARGET"];
 
-_RAPTOR playAction format["RaptorBiteGesture%1", ((floor random 3) + 1)];
+_RAPTOR playAction format["RaptorBiteGesture%1", ((floor (random 3)) + 1)];
 
-_Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
+_Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor (random 12)) + 1)];
 playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 private _aHitDam = [];
@@ -341,7 +333,7 @@ if(alive _TARGET) then{
   };
 };
 
-if(!(alive _TARGET)) then{
+if(not (alive _TARGET)) then{
   if([(typeOf _TARGET), ["Animal", "CAManBase"]] call Fnc_IsKindOf) then{
     [_RAPTOR, "TOEAT", [_RAPTOR, (getPosWorld _TARGET)], true] call Fnc_RAP_ToState;
   };
@@ -350,7 +342,8 @@ if(!(alive _TARGET)) then{
 _RAPTOR setVariable ["vRAP_TimeAttck2", time, false];
 };
 Fnc_RAP_DoTOEAT    = {//call
-params["_RAPTOR", "_MoveTo"];//_MoveTo ASL
+private _RAPTOR = _this select 0;
+private _MoveTo = _this select 1;//ASL
 
 _RAPTOR setDestination [(ASLtoATL _MoveTo), "LEADER DIRECT", false];
 _RAPTOR forceSpeed 4;//max spd: 30km/h - 8.33m/s
@@ -358,7 +351,7 @@ _RAPTOR setVariable ["MOVETO", _MoveTo, false];
 
 _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE  =  "TOEAT";
-private _iSTATE = _aStates findIf {(_x select 0) == _STATE};
+private _iSTATE = _aStates findIf {((_x select 0) == _STATE)};
         _iSTATE = ((_aStates select _iSTATE) select 1) select 2;
 
 private _aSpawn = _RAPTOR getVariable ["vRAP_aProcess", []];
@@ -367,7 +360,7 @@ private _ProcID = ScriptNull;
 if(isNull (_aSpawn select _iSTATE)) then{
   _ProcID = [_RAPTOR, _MoveTo] spawn Fnc_RAP_spwTOEAT;
 };
-if(!(isNull _ProcID)) then{
+if(not (isNull _ProcID)) then{
   _aSpawn set [_iSTATE, _ProcID];
   _RAPTOR setVariable ["vRAP_aProcess", _aSpawn, false];
 };
@@ -376,35 +369,11 @@ _RAPTOR setVariable ["vRAP_STATE",   _STATE, false];
 _RAPTOR setVariable ["vRAP_PosEat", _MoveTo, false];
 };
 Fnc_RAP_DoEATING   = {//call
-params["_RAPTOR"];
+private _RAPTOR = _this select 0;
 
 private _evID = -1;
 if((_RAPTOR getVariable ["vRAP_ANIMevID", -1]) == -1) then{
-_evID = _RAPTOR addEventHandler ["AnimDone", {
-  params["_RAPTOR", "_Anim"];
-  if(_Anim == "AI_Attack_JumpAttackEat") then{
-    _RAPTOR spawn{
-      private _PosEat = _this getVariable ["vRAP_PosEat", (getPosWorld _this)];
-      sleep 2;
-      if((_this getVariable ["vRAP_STATE", ""]) != "EATING") exitwith{};
-      [_this, "babe_raptor_Idle"] remoteExec ["switchMove", 0];
-      _this spawn{
-        for "_i" from 1 to 3 do{
-          playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _this), 4.5, 1, 100];
-          sleep (0.75 + (random 0.66));
-        };
-      };
-      sleep 4;
-      if(isNil "_this") exitwith{};
-      if((_this getVariable ["vRAP_STATE", ""]) != "EATING") exitwith{};
-      if((_PosEat vectorDistance (getPosWorld _this)) >= 4) then{
-        [_this, "TOEAT", [_this, _PosEat], false] call Fnc_RAP_ToState;
-      } else{
-        [_this, "babe_raptor_Idle"] remoteExec ["switchMove", 0];
-      };
-    };
-  };
-}];
+  _evID = _RAPTOR addEventHandler ["AnimDone", Fnc_RAP_HndlAnimD];
 };
 if(_evID != -1) then{ _RAPTOR setVariable ["vRAP_ANIMevID", _evID, false]; };
 
@@ -413,7 +382,7 @@ playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _RAP
 
 _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE  =  "EATING";
-private _iSTATE = _aStates findIf {(_x select 0) == _STATE};
+private _iSTATE = _aStates findIf {((_x select 0) == _STATE)};
         _iSTATE = ((_aStates select _iSTATE) select 1) select 2;
 
 private _aSpawn = _RAPTOR getVariable ["vRAP_aProcess", []];
@@ -422,7 +391,7 @@ private _ProcID = ScriptNull;
 if(isNull (_aSpawn select _iSTATE)) then{
   _ProcID = [_RAPTOR] spawn Fnc_RAP_spwEATING;
 };
-if(!(isNull _ProcID)) then{
+if(not (isNull _ProcID)) then{
   _aSpawn set [_iSTATE, _ProcID];
   _RAPTOR setVariable ["vRAP_aProcess", _aSpawn, false];
 };
@@ -430,15 +399,16 @@ if(!(isNull _ProcID)) then{
 _RAPTOR setVariable ["vRAP_STATE", _STATE, false];
 };
 Fnc_RAP_DoUNCONS   = {//call
-params["_RAPTOR"];
+private _RAPTOR = _this select 0;
 
 [_RAPTOR, "Unconscious"] remoteExec ["switchMove", 0];
-_Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor random 12) + 1)];
+
+_Snd = format ["babe_raptors\sounds\rap_%1.ogg", ((floor (random 12)) + 1)];
 playSound3D [_Snd, ObjNull, false, (getPosWorld _RAPTOR), 4.5, 1, 50];
 
 _aStates = _RAPTOR getVariable ["vRAP_aSTATES",  []];
 private _STATE  =  "UNCONS";
-private _iSTATE = _aStates findIf {(_x select 0) == _STATE};
+private _iSTATE = _aStates findIf {((_x select 0) == _STATE)};
         _iSTATE = ((_aStates select _iSTATE) select 1) select 2;
 
 private _aSpawn = _RAPTOR getVariable ["vRAP_aProcess", []];
@@ -447,7 +417,7 @@ private _ProcID = ScriptNull;
 if(isNull (_aSpawn select _iSTATE)) then{
   _ProcID = [_RAPTOR] spawn Fnc_RAP_spwUNCONS;
 };
-if(!(isNull _ProcID)) then{
+if(not (isNull _ProcID)) then{
   _aSpawn set [_iSTATE, _ProcID];
   _RAPTOR setVariable ["vRAP_aProcess", _aSpawn, false];
 };
@@ -457,7 +427,7 @@ _RAPTOR setVariable ["vRAP_STATE", _STATE, false];
 Fnc_RAP_DoUnstuck  = {//call
 params["_RAPTOR"];
 
-if((time - (_RAPTOR getVariable ["vRAP_LastUnStuck", time])) <= 60) exitwith{
+if((time - (_RAPTOR getVariable ["vRAP_LastUnStuck", time])) <= 60) then{
   _Dir = getDir _RAPTOR;
   _Pos = getPosATL _RAPTOR;
   _RAPTOR setPosATL (_RAPTOR getVariable ["vRAP_WP0", [0,0,0]]);
@@ -468,27 +438,24 @@ if((time - (_RAPTOR getVariable ["vRAP_LastUnStuck", time])) <= 60) exitwith{
 
   [_RAPTOR, "PATROL", [_RAPTOR], true] call Fnc_RAP_ToState;
   _RAPTOR setVariable ["vRAP_LastUnStuck", time, false];
-};
+} else{
+  _RAPTOR setVariable ["vRAP_bNoFallDmg",  true, false];
+  _RAPTOR setVariable ["vRAP_LastUnStuck", time, false];
 
-_RAPTOR setVariable ["vRAP_bNoFallDmg",  true, false];
-_RAPTOR setVariable ["vRAP_bUnstuck",    true, false];
-_RAPTOR setVariable ["vRAP_LastUnStuck", time, false];
+  _RAPTOR spawn{
+    _this setVectorUp [0,0,1];
 
-_RAPTOR spawn{
-  for "_i" from 1 to 5 do{
-    _Dir = random 360;
-    [_this, "babe_raptor_Run"] remoteExec ["switchMove", 0];
-    _this spawn{ _this setAnimSpeedCoef 2; sleep 0.80; _this setAnimSpeedCoef 1; };
-    _this setVelocity (([sin _Dir, cos _Dir, 0] vectorMultiply 8) vectorAdd [0,0,(sqrt(2*9.8*0.15))]);
-    sleep 0.66;
-  };
+    for "_i" from 1 to 5 do{
+      _Dir = random 360;
+      [_this, "babe_raptor_Run"] remoteExec ["switchMove", 0];
+      _this spawn{ _this setAnimSpeedCoef 2; sleep 0.80; _this setAnimSpeedCoef 1; };
+      _this setVelocity (([sin _Dir, cos _Dir, 0] vectorMultiply 8) vectorAdd [0,0,(sqrt(2*9.8*0.15))]);
+      sleep 0.66;
+    };
 
-  _this setVectorUp [0,0,1];
-  _this setVariable ["vRAP_bNoFallDmg", false, false];
-  _this setVariable ["vRAP_bUnstuck",   false, false];
-
-  if(alive _this) then{
-    [_this, "PATROL", [_this], true] call Fnc_RAP_ToState;
+    _this setVectorUp [0,0,1];
+    _this setVariable ["vRAP_bNoFallDmg", false, false];
+    if(alive _this) then{ [_this, "PATROL", [_this], true] call Fnc_RAP_ToState; };
   };
 };
 
@@ -568,10 +535,11 @@ params["_RAPTOR"];
 Fnc_RAP_spwPATROL  = {//spawn
 private _RAPTOR = _this select 0;
 private _MoveTo = _this select 1;//ATL
+        _MoveTo = ATLtoASL _MoveTo;
 
 private _STATUS = "";
 private _PosR = getPosWorld _RAPTOR;
-private _ETA  = 1.33 *(((ATLtoASL _MoveTo) vectorDistance _PosR)/12*8.33);
+private _ETA  = 1.33*((_MoveTo vectorDistance _PosR)/12*8.33);
         _ETA  = (_ETA min 300) + time;
 
 private _TrackTick = time;
@@ -579,11 +547,10 @@ private _bGotTargt = false;
 
 private _PosCached = getPosWorld  _RAPTOR;
 private _StuckTick = time;
-private _bStuck    = false;
 private _iStuck    = 0;
 
 waitUntil{
-  if(!(alive _RAPTOR)) exitwith{ _STATUS = "DEAD"; true };
+  if(not (alive _RAPTOR)) exitwith{ _STATUS = "DEAD"; true };
 
   if((time - _TrackTick) >= 2.50) then{
     _bGotTargt = [_RAPTOR] call Fnc_RAP_getTarget;
@@ -592,24 +559,17 @@ waitUntil{
   if(_bGotTargt) exitwith{ _STATUS = "TARGETFOUND"; true };
 
   _PosR = getPosWorld _RAPTOR;
-  _dRemain = (ATLtoASL _MoveTo) vectorDistance _PosR;
+  _dRemain = _MoveTo vectorDistance _PosR;
   if(_dRemain <= 8.45) exitwith{ _STATUS = "DONE"; true };
 
   if((time - _ETA) >= 120) exitwith{ _STATUS = "TIMEOUT"; true };
 
   if((time - _StuckTick) >= 2.66) then{
-    if(not (_RAPTOR getVariable ["vRAP_bUnstuck", true])) then{
-      if((_PosCached vectorDistance _PosR) <= 3.40) then{
-        _iStuck = _iStuck + 1;
-      } else{
-        _iStuck = 0;
-      };
-      if(_iStuck == 3) then{ _bStuck = true; };
-      _PosCached = +_PosR;
-      _StuckTick = time;
-    };
+    _iStuck = [0, (_iStuck + 1)] select ((_PosCached vectorDistance _PosR) <= 3.40);
+    _PosCached = +_PosR;
+    _StuckTick = time;
   };
-  if(_bStuck) exitwith{ _STATUS = "STUCK"; true };
+  if(_iStuck == 3) exitwith{ _STATUS = "STUCK"; true };
 
   false
 };
@@ -650,7 +610,6 @@ private _TrackTick = time;
 
 private _PosCached = getPosWorld  _RAPTOR;
 private _StuckTick = time;
-private _bStuck    = false;
 private _iStuck    = 0;
 
 waitUntil{
@@ -681,16 +640,9 @@ waitUntil{
   };
 
   if((time - _StuckTick) >= 2.66) then{
-    if(not (_RAPTOR getVariable ["vRAP_bUnstuck", true])) then{
-      if((_PosCached vectorDistance _PosR) <= 3.40) then{
-        _iStuck = _iStuck + 1;
-      } else{
-        _iStuck = 0;
-      };
-      if(_iStuck == 3) then{ _bStuck = true; };
-      _PosCached = +_PosR;
-      _StuckTick = time;
-    };
+    _iStuck = [0, (_iStuck + 1)] select ((_PosCached vectorDistance _PosR) <= 3.40);
+    _PosCached = +_PosR;
+    _StuckTick = time;
   };
   if(_bStuck) exitwith{ _STATUS = "STUCK"; true };
 
@@ -717,7 +669,7 @@ waitUntil{
 };
 Fnc_RAP_spwTOEAT   = {//spawn
 private _RAPTOR = _this select 0;
-private _MoveTo = _this select 1;
+private _MoveTo = _this select 1;//ASL
 
 private _STATUS = "";
 private _Time0 = time;
@@ -875,6 +827,38 @@ params ["_RAPTOR", "_Firer", "_Damage", "_Instigator"];
 Fnc_RAP_HndlFNear  = {//call
 params ["_RAPTOR", "_Firer", "_Distance", "_Weapon", "_Muzzle", "_Mode", "_Ammo", "_Instigator"];
 [_RAPTOR, _Firer, _Instigator] call Fnc_RAP_Alert;
+};
+Fnc_RAP_HndlAnimD  = {//call
+params["_RAPTOR", "_Anim"];
+
+if(_Anim == "AI_Attack_JumpAttackEat") then{
+  _RAPTOR spawn{
+    private _RAPTOR = _this;
+    private _PosEat = _RAPTOR getVariable ["vRAP_PosEat", (getPosWorld _RAPTOR)];
+
+    sleep 2;
+    if((_RAPTOR getVariable ["vRAP_STATE", ""]) != "EATING") exitwith{};
+
+    [_RAPTOR, "babe_raptor_Idle"] remoteExec ["switchMove", 0];
+    _RAPTOR spawn{
+      for "_i" from 1 to 3 do{
+        playSound3D ["babe_raptors\sounds\rap_12.ogg", ObjNull, false, (getPosWorld _this), 4.5, 1, 100];
+        sleep (0.75 + (random 0.66));
+      };
+    };
+    sleep 4;
+
+    if(isNil "_RAPTOR") exitwith{};
+    if((_RAPTOR getVariable ["vRAP_STATE", ""]) != "EATING") exitwith{};
+
+    if((_PosEat vectorDistance (getPosWorld _RAPTOR)) >= 4) then{
+      [_RAPTOR, "TOEAT", [_RAPTOR, _PosEat], false] call Fnc_RAP_ToState;
+    } else{
+      [_RAPTOR, "AI_Attack_JumpAttackEat"] remoteExec ["switchMove", 0];
+    };
+  };
+};
+
 };
 Fnc_RAP_Alert = {//call
 params ["_RAPTOR", "_Firer", "_Instigator"];
