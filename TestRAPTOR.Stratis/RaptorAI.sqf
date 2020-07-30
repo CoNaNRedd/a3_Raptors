@@ -644,7 +644,7 @@ waitUntil{
     _PosCached = +_PosR;
     _StuckTick = time;
   };
-  if(_bStuck) exitwith{ _STATUS = "STUCK"; true };
+  if(_iStuck == 3) exitwith{ _STATUS = "STUCK"; true };
 
   if((_PosR vectorDistance _Pos0) >= _dMax) exitwith{ _STATUS = "OUTRANGED"; true };
   if(!(alive _TARGET)) exitwith{ _STATUS = "DEADT"; true };
